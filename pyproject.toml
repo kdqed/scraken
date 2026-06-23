@@ -1,0 +1,32 @@
+[project]
+name = "scraken"
+version = "0.1.0"
+description = "One Python Function To Scrape Them All"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "html-to-markdown>=3.7.0",
+    "niquests>=3.19.1",
+    "selectolax>=0.4.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/kdqed/scraken"
+Issues = "https://github.com/kdqed/scraken/issues"
+
+[build-system]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = ["examples*", "tinker*"]
+include = ["scraken*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.*"]
