@@ -1,5 +1,7 @@
 import asyncio
+from contextlib import nullcontext
 import html
+import random
 import time
 from urllib.parse import urljoin
 
@@ -7,6 +9,11 @@ from html_to_markdown import convert as md_convert
 import niquests
 from niquests.adapters import AsyncHTTPAdapter
 from selectolax.lexbor import LexborHTMLParser
+
+try:
+    from playwright.async_api import async_playwright
+except:
+    async_playwright = None
 
 
 class AttributeNotFound(Exception):
@@ -19,6 +26,9 @@ class InvalidListExtractArgs(Exception):
     pass
 
 class NoListExtractArgs(Exception):
+    pass
+
+class NoBrowserAvailable(Exception):
     pass
 
 
@@ -98,6 +108,13 @@ class AsyncScraper:
         extract,
         cookies = None,
         headers = None,
+        js_render = False,
+        js_delay = 0,
+        js_eval = '',
+        js_eval_delay = 0,
+        js_headless = True,
+        js_wait_until = 'load',
+        proxies = None,
         session = None,
         timeout = 60,
         sleep = 0,
@@ -105,33 +122,72 @@ class AsyncScraper:
         self.extract = extract
         self.cookies = cookies
         self.headers = headers
+        self.js_render = js_render
+        self.js_delay = js_delay
+        self.js_eval = js_eval
+        self.js_eval_delay = js_eval_delay
+        self.js_headless = js_headless
+        self.js_wait_until = js_wait_until
+        self.proxies = proxies
         self.session = session
         self.timeout = timeout
         self.sleep = sleep
+
+    async def start_browser(self):
+        if async_playwright:
+            self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(headless=self.js_headless)
+        else:
+            raise NoBrowserAvailable("Install scraken[pw] to render JS")
 
     
     async def scrape(self, target, semaphore=None):
         content = target
         final_url = '__content_string__'
         if target.startswith("http://") or target.startswith("https://"):
-            fetch = niquests.aget
-            if self.session:
-                fetch = self.session.get
+            if self.js_render:
+                async with semaphore or nullcontext():
+                    context = await self._browser.new_context()
+                    page = await context.new_page()
+                    await page.goto(
+                        target, 
+                        timeout = self.timeout*1000, 
+                        wait_until = self.js_wait_until,
+                    )
+                    if self.js_delay:
+                        time.sleep(self.js_delay)
+                    if self.js_eval:
+                        await page.evaluate(self.js_eval)
+                        if self.js_eval_delay:
+                            time.sleep(self.js_eval_delay)
+                    content = await page.content()
+                    final_url = page.url
 
-            fetch_opts = dict(
-                headers = self.headers,
-                timeout = self.timeout,
-                cookies = self.cookies,
-            )
-
-            if semaphore:
-                async with semaphore:
-                    response = await fetch(target, **fetch_opts)
+                    await page.close()
+                    await context.close()
             else:
-                response = await fetch(target, **fetch_opts)
                 
-            content = response.text
-            final_url = response.url
+                fetch = niquests.aget
+                if self.session:
+                    fetch = self.session.get
+
+                proxies = None
+                if self.proxies:
+                    proxy_url = random.choice(self.proxies)
+                    proxies = {"http": proxy_url, "https": proxy_url}
+
+                fetch_opts = dict(
+                    cookies = self.cookies,
+                    headers = self.headers,
+                    proxies = proxies,
+                    timeout = self.timeout,
+                )
+
+                async with semaphore or nullcontext():
+                    response = await fetch(target, **fetch_opts)
+                    
+                content = response.text
+                final_url = response.url
 
         if self.sleep:
             time.sleep(self.sleep)
@@ -143,20 +199,40 @@ class AsyncScraper:
         elif type(self.extract) is dict:
             return _extract_by_css_selectors(content, self.extract, final_url)
 
+    async def close_browser(self):
+        if hasattr(self, '_browser'):
+            await self._browser.close()
+        if hasattr(self, '_playwright'):
+            await self._playwright.stop()
+
 
 async def scrape_async(
     target,
     extract,
+    concurrency = 1,
     cookies = None,
     headers = None,
-    timeout = 60,
-    concurrency = 1,
+    js_render = False,
+    js_delay = 0,
+    js_eval = '',
+    js_eval_delay = 0,
+    js_headless = True,
+    js_wait_until = 'load',
+    proxies = None,
     sleep = 0,
+    timeout = 60,
     ):
 
     scraper_opts = dict(
         cookies = cookies,
         headers = headers,
+        js_render = js_render,
+        js_delay = js_delay,
+        js_eval = js_eval,
+        js_eval_delay = js_eval_delay,
+        js_headless = js_headless,
+        js_wait_until = js_wait_until,
+        proxies = proxies,
         timeout = timeout,
         sleep = sleep,
     )
@@ -170,15 +246,29 @@ async def scrape_async(
             max_retries = 3
         )
         semaphore = asyncio.Semaphore(concurrency)
-        async with niquests.AsyncSession(multiplexed=False) as session:
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
+        if js_render:
             scraper = AsyncScraper(extract, session=session, **scraper_opts)
+            await scaper.start_browser()
             tasks = [scraper.scrape(t, semaphore) for t in target]
-            return await asyncio.gather(*tasks)
-    else:
+            result = await asyncio.gather(*tasks)
+            await scraper.close_browser()
+            return result           
+        else:
+            async with niquests.AsyncSession(multiplexed=False) as session:
+                session.mount("http://", adapter)
+                session.mount("https://", adapter)
+                scraper = AsyncScraper(extract, session=session, **scraper_opts)
+                tasks = [scraper.scrape(t, semaphore) for t in target]
+                return await asyncio.gather(*tasks)
+        
+    else:    
         scraper = AsyncScraper(extract, **scraper_opts)
-        return await scraper.scrape(target)
+        if js_render:
+            await scraper.start_browser()
+        result = await scraper.scrape(target)
+        if js_render:
+            await scraper.close_browser()
+        return result
 
 
 def scrape(*args, **kwargs):

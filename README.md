@@ -1,6 +1,6 @@
 # Scraken: Just scrape() everything
 
-Scraken is a refreshing, declarative take on how a scraping library in Python should work for humans and AI agents alike. It focuses on maximizing efficiency and minimizing the syntax (code tokens) required to pull off common scraping tasks. Returns raw HTML, structured data using CSS selectors, and markdown content. It's free and open source (MIT Licensed).
+Scraken is a refreshing, declarative take on how a scraping library in Python should work for humans and AI agents alike. It focuses on maximizing efficiency and minimizing the syntax (code tokens) required to pull off common scraping tasks. Scrape raw HTML, JS rendered pages, structured data using CSS selectors, or as markdown content. All within a function call. It's free and open source (MIT Licensed).
 
 Everything works with the `scrape` function, a quick example:
 
@@ -140,9 +140,7 @@ This domain is for use in documentation examples without needing permission. Avo
 
 ## Features Coming Soon
 
-- Proxies with rotation
 - JSON scraping with JSONPath
 - Scraping structured data
 - Determine CSS selectors using sample data (for development)
-- JS Rendering
 
