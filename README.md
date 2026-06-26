@@ -131,21 +131,7 @@ reflected_cookies = scrape(
     cookies = {"example-cookie": "example value"},
 )
 
-print(reflected_headers)
-```
-
-**OUTPUT:**
-
-```
-{
-  "headers": {
-    "Accept": "*/*", 
-    "Accept-Encoding": "gzip, deflate", 
-    "Host": "httpbin.org", 
-    "User-Agent": "My Custom User Agent", 
-    "X-Amzn-Trace-Id": "Root=1-6a3a6145-3b99736e72f482875f843af6"
-  }
-}
+print(reflected_cookies)
 ```
 
 ## Rotating Proxies
