@@ -79,7 +79,7 @@ result = scrape(
     {"links": ("a[href]", ">list", {"url": ("", "href")})},
 
     # for rendering js in browser:
-    js_render = True
+    js_render = True,
 
     # optional params
     js_headless = True, # default False but use True to see the browser
