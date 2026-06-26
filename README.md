@@ -182,6 +182,10 @@ This domain is for use in documentation examples without needing permission. Avo
 [Learn more](https://iana.org/domains/example)
 ```
 
+## Contributing
+
+PRs are disabled. File issues for bugs and let's discuss features and requirements under the Discussions section.
+
 ## Features Coming Soon
 
 - JSON scraping with JSONPath
