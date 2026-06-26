@@ -41,6 +41,11 @@ print(my_homepage)
 {'title': 'Karthik Devan (@kdqed)', 'favicon': 'https://kdqed.com/assets/brand/favicon.ico', 'description': 'Personal Website', 'h1': 'Karthik Devan (@kdqed)', 'posts': [{'title': 'Lima: The Edge Of My World', 'link': 'https://kdqed.com/lima-edge-of-my-world'}...
 ```
 
+## Installing
+
+- Basic: `pip install scraken` or `uv add scraken`
+- JS Rendering With Playwright: `pip install scraken[pw]` or `uv add scraken[pw]`
+
 ## Scrape Multiple URLs:
 
 Pass a list of URLs instead of just one:
@@ -60,6 +65,29 @@ for result in results:
 ```
 {'title': 'Karthik Devan (@kdqed)'}
 {'title': 'Example Domain'}
+```
+
+## JS Rendering
+
+First make sure you installed the extras with `scraken[pw]`. Next, install Chromium for playwright with `playwright install chromium`. Now you're ready:
+
+```python
+from scraken import scrape
+
+result = scrape(
+    'https://example.com',
+    {"links": ("a[href]", ">list", {"url": ("", "href")})},
+
+    # for rendering js in browser:
+    js_render = True
+
+    # optional params
+    js_headless = True, # default False but use True to see the browser
+    js_wait_until = 'load', # wait until page load, or use 'networkidle', 'domcontentloaded', or 'commit'
+    js_delay = 5, # wait additional seconds after js_wait_until 
+    js_eval = "alert('hello')", # evaluate custom JavaScript after js_wait_until event is triggered
+    js_eval_delay = 10, # wait for these many seconds after triggering js_eval
+)
 ```
 
 ## Concurrency And Delay
@@ -82,9 +110,9 @@ for result in results:
     print(result)
 ```
 
-## Custom Headers
+## Custom Headers & Cookies
 
-Use `headers` with a dict of headers you want to send in the requests:
+Use `headers` with a dict of headers, and/or `cookies` with a dict of cookies you want to send in the requests:
 
 ```python
 from scraken import scrape
@@ -93,6 +121,14 @@ reflected_headers = scrape(
     "https://httpbin.org/headers",
     "raw", # to return raw response without any extraction
     headers = {"user-agent": "My Custom User Agent"},
+)
+
+print(reflected_headers)
+
+reflected_cookies = scrape(
+    "https://httpbin.org/cookies",
+    "raw",
+    cookies = {"example-cookie": "example value"},
 )
 
 print(reflected_headers)
@@ -110,6 +146,25 @@ print(reflected_headers)
     "X-Amzn-Trace-Id": "Root=1-6a3a6145-3b99736e72f482875f843af6"
   }
 }
+```
+
+## Rotating Proxies
+
+Specify a list of proxy URLs, scraken will pick one at random for each request.
+
+```python
+from scraken import scrape
+
+result = scrape(
+    "https://api.ipify.org", 
+    "raw",
+    proxies = [
+        'your-proxy-1',
+        'your-proxy-2',
+        'your-proxy-3',
+    ]
+)
+print(result)
 ```
 
 ## Scrape As Markdown
