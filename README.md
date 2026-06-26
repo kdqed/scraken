@@ -88,6 +88,9 @@ result = scrape(
     js_eval = "alert('hello')", # evaluate custom JavaScript after js_wait_until event is triggered
     js_eval_delay = 10, # wait for these many seconds after triggering js_eval
 )
+
+print(result)
+# OUTPUT: {'links': [{'url': 'https://iana.org/domains/example'}]}
 ```
 
 ## Concurrency And Delay
